@@ -3,6 +3,8 @@
 namespace UserSessions\Model\Entity;
 
 use UserSessions\Model\Entity\UserSessionInterface;
+use Cake\ORM\Table;
+
 /**
  * Class to define the UserSessonInterface hanlder
  *

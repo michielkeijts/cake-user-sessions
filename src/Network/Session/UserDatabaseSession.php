@@ -8,7 +8,7 @@
 namespace UserSessions\Network\Session;
 
 use SessionHandlerInterface;
-use TableRegistry;
+use Cake\ORM\TableRegistry;
 
 /**
  * UserDatabaseSession is a custom session save handler to relate user_id
