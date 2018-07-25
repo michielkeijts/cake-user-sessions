@@ -1,8 +1,8 @@
 <?php
 
-namespace UserSessions\Model\Entity;
+namespace UserSessions\Model\Table;
 
-use UserSessions\Model\Entity\UserSessionInterface;
+use UserSessions\Model\Table\UserSessionInterface;
 use Cake\ORM\Table;
 
 /**
@@ -11,6 +11,14 @@ use Cake\ORM\Table;
  * @author michiel
  */
 class SessionsTable extends Table implements UserSessionInterface {
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	public function getSessionIdField() : string
+	{
+		return 'session_id';
+	}
 	
 	/**
 	 * {@inheritDoc}

@@ -50,7 +50,8 @@ class Initial extends AbstractMigration
             ->addIndex(
                 [
                     'session_id',
-                ]
+                ],
+				['unique'=>true]
             )
             ->addIndex(
                 [

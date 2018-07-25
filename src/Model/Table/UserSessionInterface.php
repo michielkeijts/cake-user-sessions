@@ -1,6 +1,6 @@
 <?php
 
-namespace UserSessions\Model\Entity;
+namespace UserSessions\Model\Table;
 
 /**
  * Abstract class to define the UserSessonInterface hanlder
@@ -8,7 +8,12 @@ namespace UserSessions\Model\Entity;
  * @author michiel
  */
 interface UserSessionInterface {
-
+	/**
+	 * Returns the name of the related user id field (e.g. user_id)
+	 * @return string
+	 */
+	public function getSessionIdField() : string;	
+	
 	/**
 	 * Returns the name of the related user id field (e.g. user_id)
 	 * @return string
