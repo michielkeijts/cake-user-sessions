@@ -10,7 +10,7 @@ use Cake\ORM\Table;
  *
  * @author michiel
  */
-class SessionsTable extends Table implements UserSessionInterface {
+class UserSessionsTable extends Table implements UserSessionInterface {
 	
 	/**
 	 * {@inheritDoc}
