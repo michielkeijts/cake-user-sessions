@@ -304,13 +304,13 @@ class UserDatabaseSession implements SessionHandlerInterface
 		}
 		
 		// renewed ID, change database
-		if ($id !== $this->_session->get($this->_table->getPrimaryIdField())) {
+		if ($id !== $this->_session->get($this->_table->getPrimaryKey())) {
 			$this->regenerateSessionId($id);
 		}
 		
-		if (!$this->_session->get($this->_table->getSessionIdField()) && !empty($this->getUserId())) {
-			$session->set($this->_table->getRelatedUserField(), $this->getUserId());
-			$this->saveSessionIdToDatabase($this->_session->get($this->_table->getPrimaryKey()), $request);
+		if (!$this->_session->get($this->_table->getRelatedUserField()) && !empty($this->getUserId())) {
+			$this->_session->set($this->_table->getRelatedUserField(), $this->getUserId());
+			$this->saveSessionIdToDatabase($this->_session->get($this->_table->getPrimaryKey()), $this->getRequest());
 		}
 
         return (bool)$this->getSaveHandler()->write($this->_session_id, $data);
@@ -383,7 +383,9 @@ class UserDatabaseSession implements SessionHandlerInterface
 			$this->_session_id = $this->getRandomString(64);
 		}
 		
-		$id = $this->saveSessionIdToDatabase($id, $this->getRequest());
+		$this->saveSessionIdToDatabase($id, $this->getRequest());
+		
+		return TRUE;
 	}
 	
 	/**
@@ -401,6 +403,9 @@ class UserDatabaseSession implements SessionHandlerInterface
 		
 		if (!$this->_session instanceof Entity) {
 			$session = new Entity();
+		} elseif ($this->_session->get($this->_table->getPrimaryKey()) != $id) {
+			$session = clone $this->_session;
+			$session->isNew(true);
 		} else {
 			$session = $this->_session;
 		}

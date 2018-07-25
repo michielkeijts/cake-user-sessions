@@ -13,6 +13,19 @@ use Cake\ORM\Table;
 class UserSessionsTable extends Table implements UserSessionInterface {
 	
 	/**
+     * Initialize method
+     *
+     * @param array $config The configuration for the Table.
+     * @return void
+     */
+    public function initialize(array $config)
+    {
+        parent::initialize($config);
+        $this->addBehavior('Timestamp');
+	}
+
+
+	/**
 	 * {@inheritDoc}
 	 */
 	public function getSessionIdField() : string
