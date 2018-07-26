@@ -16,6 +16,7 @@ use Cake\Utility\Security;
 use Cake\Http\ServerRequest;
 use UserSessions\Helper\Detect;
 use Cake\Core\App;
+use UserSessions\Model\Table\UserSessionsTable;
 
 /**
  * UserDatabaseSession is a custom session save handler to relate user_id
@@ -210,10 +211,10 @@ class UserDatabaseSession implements SessionHandlerInterface
 	{
 		$this->initialized = TRUE;
 		
-		$field = $this->_table->getSessionIdField();
-		$result = $this->_table
+		$field = $this->getTable()->getSessionIdField();
+		$result = $this->getTable()
             ->find('all')
-            ->where([$this->_table->getPrimaryKey() => $id])
+            ->where([$this->getTable()->getPrimaryKey() => $id])
             ->first();
 
         if (!empty($result)) {
@@ -261,7 +262,7 @@ class UserDatabaseSession implements SessionHandlerInterface
      */
     public function close()
     {
-		$this->_session->set($this->_table->getAccessedField(), time());
+		$this->_session->set($this->getTable()->getAccessedField(), time());
 		$this->saveSessionIdToDatabase($this->_session->id, $this->getRequest());
         return true;
     }
@@ -307,13 +308,13 @@ class UserDatabaseSession implements SessionHandlerInterface
 		}
 		
 		// renewed ID, change database
-		if ($id !== $this->_session->get($this->_table->getPrimaryKey())) {
+		if ($id !== $this->_session->get($this->getTable()->getPrimaryKey())) {
 			$this->regenerateSessionId($id);
 		}
 		
-		if (!$this->_session->get($this->_table->getRelatedUserField()) && !empty($this->getUserId())) {
-			$this->_session->set($this->_table->getRelatedUserField(), $this->getUserId());
-			$this->saveSessionIdToDatabase($this->_session->get($this->_table->getPrimaryKey()), $this->getRequest());
+		if (!$this->_session->get($this->getTable()->getRelatedUserField()) && !empty($this->getUserId())) {
+			$this->_session->set($this->getTable()->getRelatedUserField(), $this->getUserId());
+			$this->saveSessionIdToDatabase($this->_session->get($this->getTable()->getPrimaryKey()), $this->getRequest());
 		}
 
         return (bool)$this->getSaveHandler()->write($this->_session_id, $data);
@@ -327,12 +328,18 @@ class UserDatabaseSession implements SessionHandlerInterface
      */
     public function destroy($id)
     {
-        $this->_table->delete(new Entity(
-            [$this->_table->getPrimaryKey() => $id],
-            ['markNew' => false]
-        ));
+		// more generic to 
+		if ($id !== $this->_session->get($this->getTable()->getPrimaryKey())) {
+			$session = $this->getTable()->get($id);
+		} else {
+			$session = $this->_session;
+		}
+		
+		$session_id = $session->get($this->getTable()->getSessionIdField());
+		
+        $this->getTable()->delete($session);
 
-        return $this->getSaveHandler()->destroy($this->_session_id);
+        return $this->getSaveHandler()->destroy($session_id);
     }
 
     /**
@@ -343,7 +350,7 @@ class UserDatabaseSession implements SessionHandlerInterface
      */
     public function gc($maxlifetime)
     {
-        $this->_table->deleteAll(['expires <' => time() - $maxlifetime]);
+        $this->getTable()->deleteAll([$this->getTable()->getExpiresField() . ' <' => time() - $maxlifetime]);
 
         return $this->getSaveHandler()->gc($maxlifetime);
     }
@@ -379,7 +386,7 @@ class UserDatabaseSession implements SessionHandlerInterface
 	protected function regenerateSessionId(string $id) : bool
 	{
 		// only for regeneration
-		if ($this->_session->get($this->_table->getPrimaryKey()) == $id)
+		if ($this->_session->get($this->getTable()->getPrimaryKey()) == $id)
 			return true;
 		
 		if (empty($this->_session_id)) {
@@ -406,24 +413,24 @@ class UserDatabaseSession implements SessionHandlerInterface
 		
 		if (!$this->_session instanceof Entity) {
 			$session = new Entity();
-		} elseif ($this->_session->get($this->_table->getPrimaryKey()) != $id) {
+		} elseif ($this->_session->get($this->getTable()->getPrimaryKey()) != $id) {
 			$session = clone $this->_session;
 			$session->isNew(true);
 		} else {
 			$session = $this->_session;
 		}
 		
-		$session->set($this->_table->getPrimaryKey(), $id);
-		$session->set($this->_table->getSessionIdField(), $this->_session_id);
-		$session->set($this->_table->getExpiresField(), time() + $this->_timeout);
+		$session->set($this->getTable()->getPrimaryKey(), $id);
+		$session->set($this->getTable()->getSessionIdField(), $this->_session_id);
+		$session->set($this->getTable()->getExpiresField(), time() + $this->_timeout);
 		
 		if ($session->isNew()) {
-			$session->set($this->_table->getIpField(), $request->clientIp());
-			$session->set($this->_table->getUseragentField(), $request->getHeaderLine('user-agent'));
-			$session->set($this->_table->getDisplayField(), $this->getNameFromRequest($request));
+			$session->set($this->getTable()->getIpField(), $request->clientIp());
+			$session->set($this->getTable()->getUseragentField(), $request->getHeaderLine('user-agent'));
+			$session->set($this->getTable()->getDisplayField(), $this->getNameFromRequest($request));
 		}
 		
-		return $this->_session = $this->_table->save($session);
+		return $this->_session = $this->getTable()->save($session);
 	}
 	
 	/**
@@ -462,5 +469,14 @@ class UserDatabaseSession implements SessionHandlerInterface
 			return Router::getRequest();
 				
 		return new ServerRequest(['environment'=>$_SERVER + $_ENV]);
+	}
+	
+	/**
+	 * Get the current Table instance
+	 * @return Table
+	 */
+	protected function getTable() : UserSessionsTable
+	{
+		return $this->_table;
 	}
 }

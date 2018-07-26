@@ -84,6 +84,8 @@ class Initial extends AbstractMigration
                 ]
             )
             ->create();
+		
+		$this->execute('ALTER TABLE `user_sessions` ADD INDEX `accessed` (`accessed` DESC)');
     }
 
     public function down()
