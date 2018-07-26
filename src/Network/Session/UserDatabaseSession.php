@@ -113,7 +113,7 @@ class UserDatabaseSession implements SessionHandlerInterface
             $this->_table = $tableLocator->get($this->getConfig('model'));
         }
 
-        $this->_timeout = ini_get('session.gc_maxlifetime');
+        $this->setTimeout(ini_get('session.gc_maxlifetime'));
 		
 		$this->setSaveHandler();
 	}
@@ -254,12 +254,15 @@ class UserDatabaseSession implements SessionHandlerInterface
     }
 
     /**
-     * Method called on close of a session.
+     * Method called on close of a session. We update accessed timestamp
+	 * as in the open parameter, we do not have the actual id
      *
      * @return bool Success
      */
     public function close()
     {
+		$this->_session->set($this->_table->getAccessedField(), time());
+		$this->saveSessionIdToDatabase($this->_session->id, $this->getRequest());
         return true;
     }
 

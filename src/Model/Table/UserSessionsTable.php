@@ -64,4 +64,12 @@ class UserSessionsTable extends Table implements UserSessionInterface {
 	{
 		return 'ip';
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	public function getAccessedField():string
+	{
+		return 'accessed';
+	}
 }

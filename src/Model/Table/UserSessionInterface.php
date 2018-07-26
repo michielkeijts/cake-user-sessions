@@ -39,4 +39,10 @@ interface UserSessionInterface {
 	 * @return string
 	 */
 	public function getIpField() : string;
+	
+	/**
+	 * Returns the name of the datetime field storing accessed session
+	 * information
+	 */
+	public function getAccessedField() : string;
 }
