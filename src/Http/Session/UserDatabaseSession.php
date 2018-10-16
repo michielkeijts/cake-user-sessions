@@ -5,7 +5,7 @@
  * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
-namespace UserSessions\Network\Session;
+namespace UserSessions\Http\Session;
 
 use SessionHandlerInterface;
 use Cake\ORM\TableRegistry;
@@ -191,7 +191,7 @@ class UserDatabaseSession implements SessionHandlerInterface
             return $this->_engine;
         }
 
-        $className = App::className($class, 'Network/Session');
+        $className = App::className($class, 'Http/Session');
         if (!$className) {
             throw new InvalidArgumentException(
                 sprintf('The class "%s" does not exist and cannot be used as a session engine', $class)

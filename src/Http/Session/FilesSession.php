@@ -4,7 +4,7 @@
  * as well. The default php-files handler cannot be found
  */
 
-namespace UserSessions\Network\Session;
+namespace UserSessions\Http\Session;
 
 use SessionHandlerInterface;
 
