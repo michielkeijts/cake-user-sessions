@@ -137,7 +137,7 @@ class UserDatabaseSession implements SessionHandlerInterface
 			return $identity->getIdentifier();
 	
 		// use identity object from Auth component
-		$identity = $this->getRequest()->getSession('Auth.User', FALSE);
+		$identity = $this->getRequest()->getSession()->read('Auth.User');
 		if ($identity)
 			return $identity['id']?:$identity->id;
 		
@@ -365,7 +365,7 @@ class UserDatabaseSession implements SessionHandlerInterface
 	{
 		if (empty($this->_session_id)) {
 			$this->_session_id = $this->getRandomString(64);
-			$insertedId = $this->saveSessionIdToDatabase($id, $this->getRequest());
+			$insertedId = $this->saveSessionIdToDatabase($id, $this->getRequest())->id;
 		}
 		
 		if ($insertedId === $id) {
