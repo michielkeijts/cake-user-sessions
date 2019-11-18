@@ -330,13 +330,16 @@ class UserDatabaseSession implements SessionHandlerInterface
     {
 		// more generic to 
 		if ($id !== $this->_session->get($this->getTable()->getPrimaryKey())) {
-			$session = $this->getTable()->get($id);
+			$session = $this->getTable()->findById($id)->first();
 		} else {
 			$session = $this->_session;
 		}
 		
-		$session_id = $session->get($this->getTable()->getSessionIdField());
-		
+        if (!($session instanceof Entity)) 
+            return true;
+
+        $session_id = $session->get($this->getTable()->getSessionIdField());
+
         $this->getTable()->delete($session);
 
         return $this->getSaveHandler()->destroy($session_id);
