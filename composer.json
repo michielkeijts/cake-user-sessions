@@ -18,7 +18,7 @@
 		"mobiledetect/mobiledetectlib": "^2.0"
 	},
 	"require-dev": {
-		"cakephp/migrations": "^1.0"
+		"cakephp/migrations": "^3.0@beta"
 	},
 	"suggest": {
 		"cakephp/authentication": "Authentication plugin from CakePHP. Improved version of the shipped Auth component"
