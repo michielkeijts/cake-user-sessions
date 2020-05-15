@@ -18,7 +18,7 @@ class UserSessionsTable extends Table implements UserSessionInterface {
      * @param array $config The configuration for the Table.
      * @return void
      */
-    public function initialize(array $config) : void
+    public function initialize(array $config): void
     {
         parent::initialize($config);
         $this->addBehavior('Timestamp');
