@@ -418,7 +418,7 @@ class UserDatabaseSession implements SessionHandlerInterface
 			$session = new Entity();
 		} elseif ($this->_session->get($this->getTable()->getPrimaryKey()) != $id) {
 			$session = clone $this->_session;
-			$session->isNew(true);
+			$session->setNew(true);
 		} else {
 			$session = $this->_session;
 		}
