@@ -103,7 +103,7 @@ class UserDatabaseSession implements SessionHandlerInterface
      */
     public function __construct(array $config = [])
     {
-		$this->setConfig($config);
+        $this->setConfig($config);
 		
         $tableLocator = $this->getConfig('tableLocator', TableRegistry::getTableLocator());
 
@@ -116,74 +116,83 @@ class UserDatabaseSession implements SessionHandlerInterface
 
         $this->setTimeout(ini_get('session.gc_maxlifetime'));
 		
-		$this->setSaveHandler();
-	}
+        $this->setSaveHandler();
+    }
 	
-	/**
-	 * Try and find the user id for the current request.
-	 * Works also if no user id can be found
-	 * @return string|id User Id
-	 */
-	protected function getUserId () 
-	{
-		$userFn = $this->getConfig('getUserId', '');
-		if (!empty($userFn)) {
-			return $userFn();
-		}
-		
-		// use identity object from Authentication plugin
-		$identity = $this->getRequest()->getAttribute('identity', FALSE);
-		if ($identity && method_exists($identity, 'getIdentifier'))
-			return $identity->getIdentifier();
-	
-		// use identity object from Auth component
-		$identity = $this->getRequest()->getSession()->read('Auth.User');
-		if ($identity)
-			return $identity['id']?:$identity->id;
-		
-		return;
-	}
-	
-	/**
-	 * The delegate Saveto delegate al
-	 */
-	public function setSaveHandler() : SessionHandlerInterface
-	{
-		$handler = $this->getConfig('handler.engine');
-		switch ($handler) {
-			case "cache":
-				return $this->engine("CacheSession", $this->getConfig('handler.config'));
-				break;
-			case "database":
-				return $this->engine("DatabaseSession", $this->getConfig('handler.config'));
-			case "files":
-				$this->engine("UserSessions.FilesSession", $this->getConfig('handler.config'));
-				break;
-			
-			default:
-				return $this->engine($handler, $this->getConfig('handler', []));
-		}
-	}
-	
-	/**
-	 * Returns the delegate saveHandler
-	 * @return SessionHandlerInterface
-	 */
-	public function getSaveHandler(): SessionHandlerInterface
-	{
-		return $this->_engine;
-	}
-	
-	/**
-	 * 
-	 * @param SessionHandlerInterface $class
-	 * @param array $options
-	 * @return SessionHandlerInterface
-	 * @throws InvalidArgumentException
-	 */
-	private function engine ($class = NULL, array $options = []) : SessionHandlerInterface
-	{
-		if ($class instanceof SessionHandlerInterface) {
+    /**
+     * Try and find the user id for the current request.
+     * Works also if no user id can be found
+     * @return string|id User Id
+     */
+    protected function getUserId () 
+    {
+        $userFn = $this->getConfig('getUserId', '');
+        if (!empty($userFn)) {
+            return $userFn();
+        }
+
+        // use identity object from Authentication plugin
+        $identity = $this->getRequest()->getAttribute('identity', FALSE);
+        if ($identity && method_exists($identity, 'getIdentifier'))
+            return $identity->getIdentifier();
+
+        // use identity object from Auth component
+        $identity = $this->getRequest()->getSession()->read('Auth.User');
+        if ($identity)
+            return $identity['id']?:$identity->id;
+
+        return;
+    }
+    
+    /**
+     * Returns the database entity associated with this session
+     * @return Entity
+     */
+    public function getEntity() : Entity
+    {
+        return $this->_session;
+    }
+
+    /**
+     * The delegate save to delegate all
+     */
+    public function setSaveHandler() : SessionHandlerInterface
+    {
+        $handler = $this->getConfig('handler.engine');
+        switch ($handler) {
+            case "cache":
+                return $this->engine("CacheSession", $this->getConfig('handler.config'));
+                break;
+            case "database":
+                return $this->engine("DatabaseSession", $this->getConfig('handler.config'));
+            case "files":
+                $this->engine("UserSessions.FilesSession", $this->getConfig('handler.config'));
+                break;
+
+            default:
+                return $this->engine($handler, $this->getConfig('handler', []));
+        }
+    }
+
+    /**
+     * Returns the delegate saveHandler
+     * @return SessionHandlerInterface
+     */
+    public function getSaveHandler(): SessionHandlerInterface
+    {
+        return $this->_engine;
+    }
+
+    /**
+     * 
+     * @param SessionHandlerInterface $class
+     * @param array $options
+     * @return SessionHandlerInterface
+     * @throws InvalidArgumentException
+     */
+    private function engine ($class = NULL, array $options = []) : SessionHandlerInterface
+    {
+        if ($class instanceof SessionHandlerInterface) {
             return $this->_engine = $class;
         }
 
@@ -197,35 +206,35 @@ class UserDatabaseSession implements SessionHandlerInterface
                 sprintf('The class "%s" does not exist and cannot be used as a session engine', $class)
             );
         }
-		
-		$handler = new $className($options);
-		return $this->_engine = $handler;
-	}
-	
-	/**
-	 * Gets the Session Id From Database and saves
-	 * @param type $id
-	 * @return string
-	 */
-	private function initialize($id)
-	{
-		$this->initialized = TRUE;
-		
-		$field = $this->getTable()->getSessionIdField();
-		$result = $this->getTable()
+
+        $handler = new $className($options);
+        return $this->_engine = $handler;
+    }
+
+    /**
+     * Gets the Session Id From Database and saves
+     * @param type $id
+     * @return string
+     */
+    private function initialize($id)
+    {
+        $this->initialized = TRUE;
+
+        $field = $this->getTable()->getSessionIdField();
+        $result = $this->getTable()
             ->find('all')
             ->where([$this->getTable()->getPrimaryKey() => $id])
             ->first();
 
         if (!empty($result)) {
-			$this->_session = $result;
+            $this->_session = $result;
             return $this->_session_id = $result->get($field);
         } else {
-			return $this->generateSessionId($id);
-		}
+            return $this->generateSessionId($id);
+        }
 
-		return  $this->_session_id = FALSE;
-	}
+        return  $this->_session_id = FALSE;
+    }
 
     /**
      * Set the timeout value for sessions.
@@ -262,8 +271,8 @@ class UserDatabaseSession implements SessionHandlerInterface
      */
     public function close()
     {
-		$this->_session->set($this->getTable()->getAccessedField(), time());
-		$this->saveSessionIdToDatabase($this->_session->id, $this->getRequest());
+        $this->_session->set($this->getTable()->getAccessedField(), time());
+        $this->saveSessionIdToDatabase($this->_session->id, $this->getRequest());
         return true;
     }
 
@@ -275,15 +284,15 @@ class UserDatabaseSession implements SessionHandlerInterface
      */
     public function read($id)
     {
-		if (!$this->initialized) {
-			$this->initialize($id);
-		}
-		
-		if (empty($this->_session_id)) {
-			return '';
-		}
-		
-		return $this->getSaveHandler()->read($this->_session_id);
+        if (!$this->initialized) {
+            $this->initialize($id);
+        }
+
+        if (empty($this->_session_id)) {
+            return '';
+        }
+
+        return $this->getSaveHandler()->read($this->_session_id);
     }
 
     /**
@@ -295,27 +304,27 @@ class UserDatabaseSession implements SessionHandlerInterface
      */
     public function write($id, $data)
     {
-		if (!$id) {
+        if (!$id) {
             return false;
         }
 		
-		if (!$this->initialized) {
-			$this->initialize($id);
-		}
-		
-		if (empty($this->_session_id)) {
-			return '';
-		}
-		
-		// renewed ID, change database
-		if ($id !== $this->_session->get($this->getTable()->getPrimaryKey())) {
-			$this->regenerateSessionId($id);
-		}
-		
-		if (!$this->_session->get($this->getTable()->getRelatedUserField()) && !empty($this->getUserId())) {
-			$this->_session->set($this->getTable()->getRelatedUserField(), $this->getUserId());
-			$this->saveSessionIdToDatabase($this->_session->get($this->getTable()->getPrimaryKey()), $this->getRequest());
-		}
+        if (!$this->initialized) {
+                $this->initialize($id);
+        }
+
+        if (empty($this->_session_id)) {
+                return '';
+        }
+
+        // renewed ID, change database
+        if ($id !== $this->_session->get($this->getTable()->getPrimaryKey())) {
+                $this->regenerateSessionId($id);
+        }
+
+        if (!$this->_session->get($this->getTable()->getRelatedUserField()) && !empty($this->getUserId())) {
+                $this->_session->set($this->getTable()->getRelatedUserField(), $this->getUserId());
+                $this->saveSessionIdToDatabase($this->_session->get($this->getTable()->getPrimaryKey()), $this->getRequest());
+        }
 
         return (bool)$this->getSaveHandler()->write($this->_session_id, $data);
     }
@@ -328,12 +337,12 @@ class UserDatabaseSession implements SessionHandlerInterface
      */
     public function destroy($id)
     {
-		// more generic to 
-		if ($id !== $this->_session->get($this->getTable()->getPrimaryKey())) {
-			$session = $this->getTable()->findById($id)->first();
-		} else {
-			$session = $this->_session;
-		}
+        // more generic to 
+        if ($id !== $this->_session->get($this->getTable()->getPrimaryKey())) {
+            $session = $this->getTable()->findById($id)->first();
+        } else {
+            $session = $this->_session;
+        }
 		
         if (!($session instanceof Entity)) 
             return true;
@@ -359,24 +368,24 @@ class UserDatabaseSession implements SessionHandlerInterface
     }
 	
 		
-	/**
-	 * Creates database record for current session, when no record in the database exists
-	 * 
-	 * @return bool if successfull inserted
-	 */
-	protected function generateSessionId(string $id) : bool
-	{
-		if (empty($this->_session_id)) {
-			$this->_session_id = $this->getRandomString(64);
-			$insertedId = $this->saveSessionIdToDatabase($id, $this->getRequest())->id;
-		}
-		
-		if ($insertedId === $id) {
-			$this->_id = $insertedId;
-		}
-		
-		return $insertedId === $id;
-	}
+    /**
+     * Creates database record for current session, when no record in the database exists
+     * 
+     * @return bool if successfull inserted
+     */
+    protected function generateSessionId(string $id) : bool
+    {
+        if (empty($this->_session_id)) {
+            $this->_session_id = $this->getRandomString(64);
+            $insertedId = $this->saveSessionIdToDatabase($id, $this->getRequest())->id;
+        }
+
+        if ($insertedId === $id) {
+            $this->_id = $insertedId;
+        }
+
+        return $insertedId === $id;
+    }
 	
 	
 	
@@ -445,10 +454,10 @@ class UserDatabaseSession implements SessionHandlerInterface
 	{
 		Detect::init();
 		return sprintf("%s on %s (%s %s)",
-				Detect::browser(),
-				Detect::os(),
-				Detect::brand(), 
-				Detect::deviceType()				
+            Detect::browser(),
+            Detect::os(),
+            Detect::brand(), 
+            Detect::deviceType()				
 		);
 	}
 	
@@ -463,7 +472,7 @@ class UserDatabaseSession implements SessionHandlerInterface
 	}
 	
 	/**
-	 * Get dummy Serverrequest
+	 * Get dummy Server request
 	 * @return ServerRequest
 	 */
 	protected function getRequest() : ServerRequest
