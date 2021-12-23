@@ -338,7 +338,7 @@ class UserDatabaseSession implements SessionHandlerInterface
     public function destroy($id)
     {
         // more generic to 
-        if ($id !== $this->_session->get($this->getTable()->getPrimaryKey())) {
+        if (empty($this->_session) || $id !== $this->_session->get($this->getTable()->getPrimaryKey())) {
             $session = $this->getTable()->findById($id)->first();
         } else {
             $session = $this->_session;
