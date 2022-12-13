@@ -26,7 +26,7 @@ use UserSessions\Model\Table\UserSessionsTable;
 class UserDatabaseSession implements SessionHandlerInterface
 {
 	use InstanceConfigTrait;
-	
+
 	/**
      * Reference to the table handling the session data
      *
@@ -40,33 +40,33 @@ class UserDatabaseSession implements SessionHandlerInterface
      * @var int
      */
     protected $_timeout;
-	
+
 	/**
 	 * Delegat engine to acutally save sessions
 	 * @var SessionHandlerInterface
 	 */
 	protected $_engine;
-	
+
 	/**
 	 * The id of the session. Saved to see if it is renewed.
 	 * @var Entity
 	 */
 	protected $_session = NULL;
-	
+
 	/**
 	 * The actual session id which is saved. Once retrieved from database, save here.
 	 * @var string
 	 */
 	protected $_session_id = FALSE;
-	
+
 	/**
 	 * If initialized
 	 * @var bool
 	 */
 	protected $initialized = FALSE;
-	
+
 	/**
-	 * Default configuration, see __construct() 
+	 * Default configuration, see __construct()
 	 * @var array
 	 */
 	protected $_defaultConfig = [
@@ -95,16 +95,16 @@ class UserDatabaseSession implements SessionHandlerInterface
 	 *  'getUserId'		=> ''							// string with userdef. functon which returns the user_id. Default empty to use builtin function
 	 *  'tableLocator'  => TableLocator					// default  TableRegistry::getTableLocator()
 	 * ];
-	 * 
-	 * 
+	 *
+	 *
      * @param array $config The configuration for this engine. It requires the 'model'
      * key to be present corresponding to the Table to use for managing the sessions.
-	 *  
+	 *
      */
     public function __construct(array $config = [])
     {
         $this->setConfig($config);
-		
+
         $tableLocator = $this->getConfig('tableLocator', TableRegistry::getTableLocator());
 
         if (!$this->getConfig('model', FALSE)) {
@@ -115,16 +115,16 @@ class UserDatabaseSession implements SessionHandlerInterface
         }
 
         $this->setTimeout(ini_get('session.gc_maxlifetime'));
-		
+
         $this->setSaveHandler();
     }
-	
+
     /**
      * Try and find the user id for the current request.
      * Works also if no user id can be found
      * @return string|id User Id
      */
-    protected function getUserId () 
+    protected function getUserId ()
     {
         $userFn = $this->getConfig('getUserId', '');
         if (!empty($userFn)) {
@@ -143,7 +143,7 @@ class UserDatabaseSession implements SessionHandlerInterface
 
         return;
     }
-    
+
     /**
      * Returns the database entity associated with this session
      * @return Entity
@@ -186,7 +186,7 @@ class UserDatabaseSession implements SessionHandlerInterface
     }
 
     /**
-     * 
+     *
      * @param SessionHandlerInterface $class
      * @param array $options
      * @return SessionHandlerInterface
@@ -254,8 +254,8 @@ class UserDatabaseSession implements SessionHandlerInterface
     }
 
     /**
-     * Method called on open of a session. 
-	 * 
+     * Method called on open of a session.
+	 *
      * @param string $savePath The path where to store/retrieve the session.
      * @param string $name The session name.
      * @return bool Success
@@ -284,7 +284,7 @@ class UserDatabaseSession implements SessionHandlerInterface
      * @param string|int $id ID that uniquely identifies session in database.
      * @return string Session data or empty string if it does not exist.
      */
-    public function read($id): string|false
+    public function read($id): string
     {
         if (!$this->initialized) {
             $this->initialize($id);
@@ -309,7 +309,7 @@ class UserDatabaseSession implements SessionHandlerInterface
         if (!$id) {
             return false;
         }
-		
+
         if (!$this->initialized) {
                 $this->initialize($id);
         }
@@ -339,14 +339,14 @@ class UserDatabaseSession implements SessionHandlerInterface
      */
     public function destroy($id) : bool
     {
-        // more generic to 
+        // more generic to
         if (empty($this->_session) || $id !== $this->_session->get($this->getTable()->getPrimaryKey())) {
             $session = $this->getTable()->findById($id)->first();
         } else {
             $session = $this->_session;
         }
-		
-        if (!($session instanceof Entity)) 
+
+        if (!($session instanceof Entity))
             return true;
 
         $session_id = $session->get($this->getTable()->getSessionIdField());
@@ -362,17 +362,17 @@ class UserDatabaseSession implements SessionHandlerInterface
      * @param int $maxlifetime Sessions that have not updated for the last maxlifetime seconds will be removed.
      * @return bool True on success, false on failure.
      */
-    public function gc($maxlifetime): int|false
+    public function gc($maxlifetime): int
     {
         $this->getTable()->deleteAll([$this->getTable()->getExpiresField() . ' <' => time() - $maxlifetime]);
 
         return $this->getSaveHandler()->gc($maxlifetime);
     }
-	
-		
+
+
     /**
      * Creates database record for current session, when no record in the database exists
-     * 
+     *
      * @return bool if successfull inserted
      */
     protected function generateSessionId(string $id) : bool
@@ -388,13 +388,13 @@ class UserDatabaseSession implements SessionHandlerInterface
 
         return $insertedId === $id;
     }
-	
-	
-	
+
+
+
 	/**
 	 * Update the current database session with the $newId. For example
 	 * when a session_regenerate_id() is called in the application.
-	 * 
+	 *
 	 * @return bool
 	 */
 	protected function regenerateSessionId(string $id) : bool
@@ -402,18 +402,18 @@ class UserDatabaseSession implements SessionHandlerInterface
 		// only for regeneration
 		if ($this->_session->get($this->getTable()->getPrimaryKey()) == $id)
 			return true;
-		
+
 		if (empty($this->_session_id)) {
 			$this->_session_id = $this->getRandomString(64);
 		}
-		
+
 		$this->saveSessionIdToDatabase($id, $this->getRequest());
-		
+
 		return TRUE;
 	}
-	
+
 	/**
-	 * Saves the session id to the Database. 
+	 * Saves the session id to the Database.
 	 * @param $id The Session identifier
 	 * @param ServerRequest $request
 	 * @param bool $isNew
@@ -424,7 +424,7 @@ class UserDatabaseSession implements SessionHandlerInterface
 		if (empty($this->_session_id)) {
 			return FALSE;
 		}
-		
+
 		if (!$this->_session instanceof Entity) {
 			$session = new Entity();
 		} elseif ($this->_session->get($this->getTable()->getPrimaryKey()) != $id) {
@@ -433,20 +433,20 @@ class UserDatabaseSession implements SessionHandlerInterface
 		} else {
 			$session = $this->_session;
 		}
-		
+
 		$session->set($this->getTable()->getPrimaryKey(), $id);
 		$session->set($this->getTable()->getSessionIdField(), $this->_session_id);
 		$session->set($this->getTable()->getExpiresField(), time() + $this->_timeout);
-		
+
 		if ($session->isNew()) {
 			$session->set($this->getTable()->getIpField(), $request->clientIp());
 			$session->set($this->getTable()->getUseragentField(), $request->getHeaderLine('user-agent'));
 			$session->set($this->getTable()->getDisplayField(), $this->getNameFromRequest($request));
 		}
-		
+
 		return $this->_session = $this->getTable()->save($session);
 	}
-	
+
 	/**
 	 * Gets a nice formatted name for this session
 	 * @param ServerRequest $request
@@ -458,11 +458,11 @@ class UserDatabaseSession implements SessionHandlerInterface
 		return sprintf("%s on %s (%s %s)",
             Detect::browser(),
             Detect::os(),
-            Detect::brand(), 
-            Detect::deviceType()				
+            Detect::brand(),
+            Detect::deviceType()
 		);
 	}
-	
+
 	/**
 	 * Return a random string
 	 * @param int $length
@@ -472,7 +472,7 @@ class UserDatabaseSession implements SessionHandlerInterface
 	{
 		return substr(bin2hex(Security::randomBytes($length)), 0, $length);
 	}
-	
+
 	/**
 	 * Get dummy Server request
 	 * @return ServerRequest
@@ -481,10 +481,10 @@ class UserDatabaseSession implements SessionHandlerInterface
 	{
 		if (Router::getRequest() instanceof ServerRequest)
 			return Router::getRequest();
-				
+
 		return new ServerRequest(['environment'=>$_SERVER + $_ENV]);
 	}
-	
+
 	/**
 	 * Get the current Table instance
 	 * @return Table
