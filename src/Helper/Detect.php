@@ -12,7 +12,7 @@
 
 namespace UserSessions\Helper;
 
-use Mobile_Detect;
+use Detection\MobileDetect;
 
 
 class Detect {
@@ -30,13 +30,11 @@ class Detect {
 	private static $detect = null;
 
 	public static function init() {
-		self::$detect = new Mobile_Detect();
-		self::$detect->setDetectionType(Mobile_Detect::DETECTION_TYPE_EXTENDED);
+		self::$detect = new MobileDetect();
 		self::getIp();
 	}
 
 	private static function getIp() {
-		#self::$setDetectionType(Mobile_Detect::DETECTION_TYPE_EXTENDED);
 		if (isset($_SERVER['HTTP_CLIENT_IP']) && !empty($_SERVER['HTTP_CLIENT_IP'])) { self::$ipAddress = $_SERVER['HTTP_CLIENT_IP']; }
 		elseif (isset($_SERVER['HTTP_X_FORWARDED_FOR']) && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) { self::$ipAddress = $_SERVER['HTTP_X_FORWARDED_FOR']; }
 		else { self::$ipAddress = $_SERVER['REMOTE_ADDR']; }
@@ -71,7 +69,7 @@ class Detect {
 	public static function version($var) {
 		return self::$detect->version($var);
 	}
-	
+
 	public static function isEdge() {
 		$agent = $_SERVER['HTTP_USER_AGENT'];
 		if (preg_match('/Edge\/\d+/', $agent)) {
@@ -80,7 +78,7 @@ class Detect {
 			return false;
 		}
 	}
-	
+
 	public static function __callStatic($name, $arguments) {
 		if (substr($name, 0, 2) != 'is') {
 			$trace = current(debug_backtrace());
@@ -215,7 +213,7 @@ class Detect {
 		return $os;
 
 	}
-	
+
 	public static function browser() {
 		$agent = $_SERVER['HTTP_USER_AGENT'];
 		$browser = 'Unknown Browser';
