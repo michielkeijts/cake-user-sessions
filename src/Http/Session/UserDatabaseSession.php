@@ -1,12 +1,13 @@
 <?php
 /**
- * @author	      Michiel Keijts
+ * @author	      Normit, Michiel Keijts
  * @link          https://github.com/michielkeijts/cake-user-sessions
  * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 namespace UserSessions\Http\Session;
 
+use Cake\Datasource\EntityInterface;
 use SessionHandlerInterface;
 use Cake\ORM\TableRegistry;
 use Cake\Core\InstanceConfigTrait;
@@ -17,6 +18,7 @@ use Cake\Http\ServerRequest;
 use UserSessions\Helper\Detect;
 use Cake\Core\App;
 use UserSessions\Model\Table\UserSessionsTable;
+use Exception;
 
 /**
  * UserDatabaseSession is a custom session save handler to relate user_id
@@ -48,7 +50,7 @@ class UserDatabaseSession implements SessionHandlerInterface
 	protected $_engine;
 
 	/**
-	 * The id of the session. Saved to see if it is renewed.
+	 * The session. Saved to see if it is renewed.
 	 * @var Entity
 	 */
 	protected $_session = NULL;
@@ -77,7 +79,7 @@ class UserDatabaseSession implements SessionHandlerInterface
 			]
 		],
 		'model'		=> 'UserSessions.UserSessions',
-		'getUserId' => ''
+		'getUserId' => '',
 	];
 
     /**
@@ -132,12 +134,12 @@ class UserDatabaseSession implements SessionHandlerInterface
         }
 
         // use identity object from Authentication plugin
-        $identity = $this->getRequest()->getAttribute('identity', FALSE);
+        $identity = $this->getTable()->getRequest()->getAttribute('identity', FALSE);
         if ($identity && method_exists($identity, 'getIdentifier'))
             return $identity->getIdentifier();
 
         // use identity object from Auth component
-        $identity = $this->getRequest()->getSession()->read('Auth.User');
+        $identity = $this->getTable()->getRequest()->getSession()->read('Auth.User');
         if ($identity)
             return $identity['id']?:$identity->id;
 
@@ -146,11 +148,34 @@ class UserDatabaseSession implements SessionHandlerInterface
 
     /**
      * Returns the database entity associated with this session
-     * @return Entity
+     * @return Entity|NULL
      */
-    public function getEntity() : Entity
+    public function getSession() : ?Entity
     {
         return $this->_session;
+    }
+
+    /**
+     * Sets the $session variable to the $this->_session
+     * @param EntityInterface $session
+     * @return Entity $session
+     */
+    public function setSession(EntityInterface $session) : Entity
+    {
+        return $this->_session = $session;
+    }
+
+    /**
+     * Returns the session ID from the $session entity
+     * @return string
+     */
+    public function getSessionId() : string
+    {
+        if (is_null($this->getSession())) {
+            throw new Exception("First initialize the database session");
+        }
+
+        return $this->getSession()->get($this->getTable()->getSessionIdField());
     }
 
     /**
@@ -168,9 +193,7 @@ class UserDatabaseSession implements SessionHandlerInterface
             case "files":
                 $this->engine("UserSessions.FilesSession", $this->getConfig('handler.config'));
                 break;
-
             default:
-
         }
 
         return $this->engine($handler, $this->getConfig('handler', []));
@@ -215,27 +238,23 @@ class UserDatabaseSession implements SessionHandlerInterface
 
     /**
      * Gets the Session Id From Database and saves
-     * @param type $id
-     * @return string
+     * @param string $session_id
+     * @return string $session id
      */
-    private function initialize($id)
+    private function initialize($session_id)
     {
-        $this->initialized = TRUE;
-
-        $field = $this->getTable()->getSessionIdField();
-        $result = $this->getTable()
+        $session = $this->getTable()
             ->find('all')
-            ->where([$this->getTable()->getPrimaryKey() => $id])
+            ->where([$this->getTable()->getSessionIdField() => $session_id])
             ->first();
 
-        if (!empty($result)) {
-            $this->_session = $result;
-            return $this->_session_id = $result->get($field);
-        } else {
-            return $this->generateSessionId($id);
+        if (empty($session)) {
+            $session = $this->createDatabaseSession($session_id);
         }
 
-        return  $this->_session_id = FALSE;
+        $this->setSession($session);
+
+        return $this->getSessionId();
     }
 
     /**
@@ -273,87 +292,82 @@ class UserDatabaseSession implements SessionHandlerInterface
      */
     public function close(): bool
     {
-        $this->_session->set($this->getTable()->getAccessedField(), time());
-        $this->saveSessionIdToDatabase($this->_session->id, $this->getRequest());
-        return true;
+        // sometimes the session gets destroyed first, it is set to NULL
+        $session = $this->getSession();
+        if (is_null($session)) {
+            return TRUE;
+        }
+
+        $this->getSession()->set($this->getTable()->getAccessedField(), time());
+        return $this->saveSessionToDatabase();
     }
 
     /**
      * Method used to read from a database session.
      *
-     * @param string|int $id ID that uniquely identifies session in database.
+     * @param string|int $session_id ID that uniquely identifies session in database.
      * @return string Session data or empty string if it does not exist.
      */
-    public function read($id): string
+    public function read($session_id): string
     {
-        if (!$this->initialized) {
-            $this->initialize($id);
+        if (is_null($this->getSession())) {
+            $this->initialize($session_id);
         }
 
-        if (empty($this->_session_id)) {
-            return '';
+        if ($session_id !== $this->getSessionId()) {
+            $i=0;
         }
 
-        return $this->getSaveHandler()->read($this->_session_id);
+        return $this->getSaveHandler()->read($this->getSessionId());
     }
 
     /**
      * Helper function called on write for database sessions.
      *
-     * @param string|int $id ID that uniquely identifies session in database.
+     * @param string|int $session_id ID that uniquely identifies session in database.
      * @param mixed $data The data to be saved.
      * @return bool True for successful write, false otherwise.
      */
-    public function write($id, $data) : bool
+    public function write($session_id, $data) : bool
     {
-        if (!$id) {
-            return false;
+        if (empty($session_id)) {
+            return FALSE;
         }
 
-        if (!$this->initialized) {
-                $this->initialize($id);
+        if (is_null($this->getSession())) {
+            $this->initialize($session_id);
         }
 
-        if (empty($this->_session_id)) {
-                return '';
+        if ($session_id !== $this->getSessionId()) {
+            $i=0;
         }
 
-        // renewed ID, change database
-        if ($id !== $this->_session->get($this->getTable()->getPrimaryKey())) {
-                $this->regenerateSessionId($id);
+        if (!$this->getSession()->get($this->getTable()->getRelatedUserField()) && !empty($this->getUserId())) {
+            $this->getSession()->set($this->getTable()->getRelatedUserField(), $this->getUserId());
         }
 
-        if (!$this->_session->get($this->getTable()->getRelatedUserField()) && !empty($this->getUserId())) {
-                $this->_session->set($this->getTable()->getRelatedUserField(), $this->getUserId());
-                $this->saveSessionIdToDatabase($this->_session->get($this->getTable()->getPrimaryKey()), $this->getRequest());
-        }
-
-        return (bool)$this->getSaveHandler()->write($this->_session_id, $data);
+        return (bool)$this->getSaveHandler()->write($this->getSessionId(), $data);
     }
 
     /**
      * Method called on the destruction of a database session.
      *
-     * @param string|int $id ID that uniquely identifies session in database.
+     * @param string|int $session_id ID that uniquely identifies session in database.
      * @return bool True for successful delete, false otherwise.
      */
-    public function destroy($id) : bool
+    public function destroy($session_id) : bool
     {
-        // more generic to
-        if (empty($this->_session) || $id !== $this->_session->get($this->getTable()->getPrimaryKey())) {
-            $session = $this->getTable()->findById($id)->first();
-        } else {
-            $session = $this->_session;
+        $session = $this->getSession();
+        if (is_null($session) || $session_id !== $this->getSessionId()) {
+            $session = $this->getTable()->findBySessionId($session_id)->first();
         }
 
-        if (!($session instanceof Entity))
-            return true;
+        if (!is_null($this->getSession()) && $this->getSessionId() === $session_id) {
+            $this->_session = NULL;
+        }
 
-        $session_id = $session->get($this->getTable()->getSessionIdField());
-
-        $this->getTable()->delete($session);
-
-        return $this->getSaveHandler()->destroy($session_id);
+        return $this->getSaveHandler()->destroy($session->get($this->getTable()->getSessionIdField()))
+            && $this->getTable()->delete($session);
     }
 
     /**
@@ -369,121 +383,32 @@ class UserDatabaseSession implements SessionHandlerInterface
         return $this->getSaveHandler()->gc($maxlifetime);
     }
 
+	/**
+	 * Saves the session id to the Database.
+	 * @return boolean
+	 */
+	protected function saveSessionToDatabase() : bool
+	{
+		$this->getSession()->set($this->getTable()->getExpiresField(), time() + $this->_timeout);
+
+		return $this->getTable()->save($this->getSession()) !== FALSE;
+	}
 
     /**
-     * Creates database record for current session, when no record in the database exists
-     *
-     * @return bool if successfull inserted
+     * Creates a new session in the Database for session id $session_id
+     * @param string $session_id
+     * @return Entity
      */
-    protected function generateSessionId(string $id) : bool
+    protected function createDatabaseSession(string $session_id) : Entity
     {
-        if (empty($this->_session_id)) {
-            $this->_session_id = $this->getRandomString(64);
-            $insertedId = $this->saveSessionIdToDatabase($id, $this->getRequest())->id;
-        }
+        $session = $this->getTable()->newEmptyEntity();
+        $session->set($this->getTable()->getSessionIdField(), $session_id);
+        $session->set($this->getTable()->getExpiresField(), time() + $this->_timeout);
 
-        if ($insertedId === $id) {
-            $this->_id = $insertedId;
-        }
-
-        return $insertedId === $id;
+        return $this->getTable()->save($session);
     }
 
 
-
-	/**
-	 * Update the current database session with the $newId. For example
-	 * when a session_regenerate_id() is called in the application.
-	 *
-	 * @return bool
-	 */
-	protected function regenerateSessionId(string $id) : bool
-	{
-		// only for regeneration
-		if ($this->_session->get($this->getTable()->getPrimaryKey()) == $id)
-			return true;
-
-		if (empty($this->_session_id)) {
-			$this->_session_id = $this->getRandomString(64);
-		}
-
-		$this->saveSessionIdToDatabase($id, $this->getRequest());
-
-		return TRUE;
-	}
-
-	/**
-	 * Saves the session id to the Database.
-	 * @param $id The Session identifier
-	 * @param ServerRequest $request
-	 * @param bool $isNew
-	 * @return boolean
-	 */
-	protected function saveSessionIdToDatabase(string $id, ServerRequest $request)
-	{
-		if (empty($this->_session_id)) {
-			return FALSE;
-		}
-
-		if (!$this->_session instanceof Entity) {
-			$session = new Entity();
-		} elseif ($this->_session->get($this->getTable()->getPrimaryKey()) != $id) {
-			$session = clone $this->_session;
-			$session->setNew(true);
-		} else {
-			$session = $this->_session;
-		}
-
-		$session->set($this->getTable()->getPrimaryKey(), $id);
-		$session->set($this->getTable()->getSessionIdField(), $this->_session_id);
-		$session->set($this->getTable()->getExpiresField(), time() + $this->_timeout);
-
-		if ($session->isNew()) {
-			$session->set($this->getTable()->getIpField(), $request->clientIp());
-			$session->set($this->getTable()->getUseragentField(), $request->getHeaderLine('user-agent'));
-			$session->set($this->getTable()->getDisplayField(), $this->getNameFromRequest($request));
-		}
-
-		return $this->_session = $this->getTable()->save($session);
-	}
-
-	/**
-	 * Gets a nice formatted name for this session
-	 * @param ServerRequest $request
-	 * @return type
-	 */
-	protected function getNameFromRequest(ServerRequest $request)
-	{
-		Detect::init();
-		return sprintf("%s on %s (%s %s)",
-            Detect::browser(),
-            Detect::os(),
-            Detect::brand(),
-            Detect::deviceType()
-		);
-	}
-
-	/**
-	 * Return a random string
-	 * @param int $length
-	 * @return string
-	 */
-	protected function getRandomString($length) : string
-	{
-		return substr(bin2hex(Security::randomBytes($length)), 0, $length);
-	}
-
-	/**
-	 * Get dummy Server request
-	 * @return ServerRequest
-	 */
-	protected function getRequest() : ServerRequest
-	{
-		if (Router::getRequest() instanceof ServerRequest)
-			return Router::getRequest();
-
-		return new ServerRequest(['environment'=>$_SERVER + $_ENV]);
-	}
 
 	/**
 	 * Get the current Table instance
