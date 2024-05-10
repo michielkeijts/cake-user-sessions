@@ -3,7 +3,7 @@ use Migrations\AbstractMigration;
 
 class Initial extends AbstractMigration
 {
-        public function up()
+    public function up()
     {
 
         $this->table('user_sessions', ['id' => false, 'primary_key' => ['id']])
@@ -84,13 +84,12 @@ class Initial extends AbstractMigration
                 ]
             )
             ->create();
-		
+
 		$this->execute('ALTER TABLE `user_sessions` ADD INDEX `accessed` (`accessed` DESC)');
     }
 
     public function down()
     {
-
         $this->dropTable('user_sessions');
     }
 }

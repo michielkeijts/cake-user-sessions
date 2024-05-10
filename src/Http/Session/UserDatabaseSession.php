@@ -15,7 +15,6 @@ use Cake\Routing\Router;
 use Cake\ORM\Entity;
 use Cake\Utility\Security;
 use Cake\Http\ServerRequest;
-use UserSessions\Helper\Detect;
 use Cake\Core\App;
 use UserSessions\Model\Table\UserSessionsTable;
 use Exception;

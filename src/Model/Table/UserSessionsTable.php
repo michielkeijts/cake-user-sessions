@@ -7,7 +7,6 @@ use Cake\ORM\Query;
 use Cake\Routing\Router;
 use Cake\Utility\Security;
 use UserSessions\Helper\Detect;
-use UserSessions\Model\Table\UserSessionInterface;
 use Cake\ORM\Table;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
