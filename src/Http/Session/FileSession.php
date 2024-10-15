@@ -12,7 +12,7 @@ class FileSession implements SessionHandlerInterface
 {
     private $savePath;
 
-    function open($savePath, $sessionName)
+    function open($savePath, $sessionName): bool
     {
         $this->savePath = $savePath;
         if (!is_dir($this->savePath)) {
@@ -22,22 +22,22 @@ class FileSession implements SessionHandlerInterface
         return true;
     }
 
-    function close()
+    function close(): bool
     {
         return true;
     }
 
-    function read($id)
+    function read($id): string|false
     {
         return (string)@file_get_contents("$this->savePath/sess_$id");
     }
 
-    function write($id, $data)
+    function write($id, $data): bool
     {
         return file_put_contents("$this->savePath/sess_$id", $data) === false ? false : true;
     }
 
-    function destroy($id)
+    function destroy($id): bool
     {
         $file = "$this->savePath/sess_$id";
         if (file_exists($file)) {
@@ -47,14 +47,15 @@ class FileSession implements SessionHandlerInterface
         return true;
     }
 
-    function gc($maxlifetime)
+    function gc($maxlifetime): int|false
     {
         foreach (glob("$this->savePath/sess_*") as $file) {
             if (filemtime($file) + $maxlifetime < time() && file_exists($file)) {
                 unlink($file);
+                return 1;
             }
         }
 
-        return true;
+        return false;
     }
 }

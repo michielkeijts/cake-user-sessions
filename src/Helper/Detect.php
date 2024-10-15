@@ -12,7 +12,10 @@
 
 namespace UserSessions\Helper;
 
+use Cake\Error\Debugger;
+use Cake\Log\Log;
 use Detection\MobileDetect;
+use Exception;
 
 
 class Detect {
@@ -82,7 +85,7 @@ class Detect {
 	public static function __callStatic($name, $arguments) {
 		if (substr($name, 0, 2) != 'is') {
 			$trace = current(debug_backtrace());
-            Debug::error('No such method exists: ' . $name, $trace);
+            Log::error('No such method exists: ' . $name, $trace);
 			return null;
 		} else {
 			return self::$detect->{$name}();

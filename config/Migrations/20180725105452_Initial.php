@@ -90,6 +90,6 @@ class Initial extends AbstractMigration
 
     public function down()
     {
-        $this->dropTable('user_sessions');
+        $this->table('user_sessions')->drop()->save();
     }
 }

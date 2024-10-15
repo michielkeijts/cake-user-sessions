@@ -18,6 +18,7 @@ use Cake\Http\ServerRequest;
 use Cake\Core\App;
 use UserSessions\Model\Table\UserSessionsTable;
 use Exception;
+use Cake\Cache\Exception\InvalidArgumentException;
 
 /**
  * UserDatabaseSession is a custom session save handler to relate user_id
@@ -226,7 +227,7 @@ class UserDatabaseSession implements SessionHandlerInterface
 
         $className = App::className($class, 'Http/Session');
         if (!$className) {
-            throw new InvalidArgumentException(
+            throw new Exception(
                 sprintf('The class "%s" does not exist and cannot be used as a session engine', $class)
             );
         }
