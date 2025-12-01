@@ -12,6 +12,11 @@ class FileSession implements SessionHandlerInterface
 {
     private $savePath;
 
+    public function __construct(array $options)
+    {
+        $this->savePath = $options['savePath'];
+    }
+
     function open($savePath, $sessionName): bool
     {
         $this->savePath = $savePath;
