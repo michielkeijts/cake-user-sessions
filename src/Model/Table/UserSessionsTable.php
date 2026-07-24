@@ -3,6 +3,8 @@
 namespace UserSessions\Model\Table;
 
 use Cake\Http\ServerRequest;
+use Cake\I18n\DateTime;
+use Cake\Log\Log;
 use Cake\ORM\Query;
 use Cake\Routing\Router;
 use Cake\Utility\Security;
@@ -29,6 +31,8 @@ class UserSessionsTable extends Table implements UserSessionInterface {
     {
         parent::initialize($config);
         $this->addBehavior('Timestamp');
+
+        $this->setEntityClass('UserSessions.UserSession');
 	}
 
 
@@ -92,6 +96,16 @@ class UserSessionsTable extends Table implements UserSessionInterface {
         }
     }
 
+    public function afterDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options)
+    {
+        try {
+            $handler = Router::getRequest()->getSession()->engine();
+            $handler->destroy($entity->session_id);
+        } catch (\Exception $e) {
+            Log::error("[Session] Delete " . $e->getMessage() );
+        }
+    }
+
     /**
      * Gets a nice formatted name for this session
      * @param ServerRequest $request
@@ -141,5 +155,38 @@ class UserSessionsTable extends Table implements UserSessionInterface {
         $user_id = $options['user_id'] ?? -1;
         $field = $this->getRelatedUserField();
         return $query->where([$field => $user_id])->orderDesc('accessed');
+    }
+
+    public function findNotExpired(Query $query, array $options) : Query
+    {
+        return $query->where([$this->getExpiresField() => new DateTime()]);
+    }
+
+    /**
+     * @param int $user_id
+     * @return bool
+     */
+    public function deleteByUserId(int $user_id) : bool
+    {
+        $user_sessions = $this->findByUserId($user_id);
+        foreach ($user_sessions as $user_session) {
+            $this->delete($user_session);
+        }
+
+        return TRUE;
+    }
+
+    /**
+     * @param int $user_id
+     * @return bool
+     */
+    public function deleteExpired() : bool
+    {
+        $user_sessions = $this->find('NotExpired');
+        foreach ($user_sessions as $user_session) {
+            $this->delete($user_session);
+        }
+
+        return TRUE;
     }
 }

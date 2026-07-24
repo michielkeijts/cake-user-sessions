@@ -273,7 +273,7 @@ class UserDatabaseSession implements SessionHandlerInterface
     }
 
     /**
-     * Method called on open of a session.
+     * Method called on open of a session. Creates the database Session if not exists.
 	 *
      * @param string $savePath The path where to store/retrieve the session.
      * @param string $name The session name.
@@ -281,7 +281,20 @@ class UserDatabaseSession implements SessionHandlerInterface
      */
     public function open($savePath, $name): bool
     {
+        if (!empty(session_id())) {
+            $this->initialize(session_id());
+        }
+
         return true;
+    }
+
+    public function create_sid(): string
+    {
+        $session_id = session_create_id();
+
+        $this->initialize($session_id);
+
+        return $session_id;
     }
 
     /**
@@ -310,14 +323,6 @@ class UserDatabaseSession implements SessionHandlerInterface
      */
     public function read($session_id): string
     {
-        if (is_null($this->getSession())) {
-            $this->initialize($session_id);
-        }
-
-        if ($session_id !== $this->getSessionId()) {
-            $i=0;
-        }
-
         return $this->getSaveHandler()->read($this->getSessionId());
     }
 
@@ -332,14 +337,6 @@ class UserDatabaseSession implements SessionHandlerInterface
     {
         if (empty($session_id)) {
             return FALSE;
-        }
-
-        if (is_null($this->getSession())) {
-            $this->initialize($session_id);
-        }
-
-        if ($session_id !== $this->getSessionId()) {
-            $i=0;
         }
 
         if (!$this->getSession()->get($this->getTable()->getRelatedUserField()) && !empty($this->getUserId())) {
@@ -366,8 +363,7 @@ class UserDatabaseSession implements SessionHandlerInterface
             $this->_session = NULL;
         }
 
-        return $this->getSaveHandler()->destroy($session->get($this->getTable()->getSessionIdField()))
-            && $this->getTable()->delete($session);
+        return $this->getSaveHandler()->destroy($session_id) && (!empty($session) && $this->getTable()->delete($session));
     }
 
     /**
@@ -378,7 +374,7 @@ class UserDatabaseSession implements SessionHandlerInterface
      */
     public function gc($maxlifetime): int
     {
-        $this->getTable()->deleteAll([$this->getTable()->getExpiresField() . ' <' => time() - $maxlifetime]);
+        $this->getTable()->deleteExpired();
 
         return $this->getSaveHandler()->gc($maxlifetime);
     }
