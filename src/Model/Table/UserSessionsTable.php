@@ -146,18 +146,18 @@ class UserSessionsTable extends Table implements UserSessionInterface {
 
     /**
      * Return active sessions for a user ($options['user_id'])
-     * @param Query $query
+     * @param \Cake\ORM\Query\SelectQuery $query
      * @param array $options
-     * @return Query
+     * @return \Cake\ORM\Query\SelectQuery
      */
-    public function findActiveSessions(Query $query, array $options) : Query
+    public function findActiveSessions(\Cake\ORM\Query\SelectQuery $query, array $options) : \Cake\ORM\Query\SelectQuery
     {
         $user_id = $options['user_id'] ?? -1;
         $field = $this->getRelatedUserField();
         return $query->where([$field => $user_id])->orderDesc('accessed');
     }
 
-    public function findNotExpired(Query $query, array $options) : Query
+    public function findNotExpired(\Cake\ORM\Query\SelectQuery $query, array $options) : \Cake\ORM\Query\SelectQuery
     {
         return $query->where([$this->getExpiresField() => new DateTime()]);
     }
